@@ -31,25 +31,25 @@ let ongoing = true;
 class Particle {
   static R: number;
   static counter = 0;
+  static OX: number;
+  static OY: number;
 
-  x: number;
-  y: number;
+  dX: number;
+  dY: number;
   vx: number;
   vy: number;
   r: number;
-  id: number;
 
   ongoing: boolean;
 
   constructor() {
     const theta = uniformDistBetween(0.0, 2.0 * Math.PI);
-    this.x = Math.sqrt(2.0) * Particle.R * Math.sin(theta);
-    this.y = Math.sqrt(2.0) * Particle.R * Math.cos(theta);
-    const norm = Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
-    this.vx = -this.x / norm;
-    this.vy = -this.y / norm;
+    this.dX = Math.sqrt(2.0) * Particle.R * Math.sin(theta);
+    this.dY = Math.sqrt(2.0) * Particle.R * Math.cos(theta);
+    const norm = Math.sqrt(Math.pow(this.dX, 2) + Math.pow(this.dY, 2));
+    this.vx = -this.dX / norm;
+    this.vy = -this.dY / norm;
     this.ongoing = true;
-    this.id = Particle.counter++;
     this.r = normalTrunc(15.0, 5.0, 65.0);
     this.collapse();
     if (!this.ongoing) {
@@ -57,33 +57,39 @@ class Particle {
     }
   }
 
-  collapse() {
-    if (this.ongoing) {
-      particles.forEach((particle) => {
-        if (particle.id !== this.id) {
-          if (
-            Math.sqrt(
-              (particle.x - this.x) * (particle.x - this.x) +
-                (particle.y - this.y) * (particle.y - this.y)
-            ) <=
-            particle.r + this.r
-          ) {
-            this.ongoing = false;
-          }
+  getX() {
+    return this.dX + Particle.OX;
+  }
+
+  getY() {
+    return this.dY + Particle.OY;
+  }
+
+  collapse(idx: number) {
+    particles.forEach((particle: Particle, j: number) => {
+      if (this.ongoing && idx !== j) {
+        if (
+          Math.sqrt(
+            (particle.dX - this.dX) * (particle.dX - this.dX) +
+              (particle.dY - this.dY) * (particle.dY - this.dY)
+          ) <=
+          particle.r + this.r
+        ) {
+          this.ongoing = false;
         }
-      });
-    }
+      }
+    });
   }
 
   evolution() {
     if (this.ongoing) {
-      this.x += this.vx;
-      this.y += this.vy;
+      this.dX += this.vx;
+      this.dY += this.vy;
     }
   }
 
   draw(p: P5) {
-    p.circle(this.x, this.y, 2.0 * this.r - 1);
+    p.circle(this.dX, this.dY, 2.0 * this.r - 1);
   }
 }
 const particles: Array<Particle> = [];
@@ -91,6 +97,7 @@ const colors: Array<P5.Color> = [];
 
 class Square {
   static size: number;
+  // 座標ではなく，グリッド番号にしたらいいことある？ x が角の座標だって分かるかな？
   x: number;
   y: number;
   filled: boolean;
@@ -100,14 +107,15 @@ class Square {
     this.filled = false;
   }
 
-  update(p5: P5) {
+  // Todo: particles に依存しないように修正
+  update() {
     if (!this.filled) {
       particles.forEach((particle: Particle) => {
         if (!particle.ongoing) {
           const xCenter = this.x + 0.5 * Square.size;
           const yCenter = this.y + 0.5 * Square.size;
-          const xParticle = particle.x + 0.5 * p5.width;
-          const yParticle = particle.y + 0.5 * p5.height;
+          const xParticle = particle.getX();
+          const yParticle = particle.getY();
           this.filled =
             Math.sqrt(
               Math.pow(xCenter - xParticle, 2) +
@@ -135,23 +143,26 @@ const sketch = (p5: P5) => {
     colors.push(p5.color(181, 98, 69));
   };
   p5.setup = () => {
+    const RESOLUTION = 40;
     p5.createCanvas(1000, 600);
+    Particle.OX = p5.width * 0.5;
+    Particle.OY = p5.height * 0.5;
     Particle.R =
       Math.sqrt(Math.pow(p5.width * 0.5, 2) + Math.pow(p5.height * 0.5, 2)) +
       65;
     const origin: Particle = new Particle();
-    origin.x = 0.0;
-    origin.y = 0.0;
+    origin.dX = 0.0;
+    origin.dY = 0.0;
     origin.r = 10.0;
     origin.ongoing = false;
     particles.push(origin);
     particles.push(new Particle());
+
     p5.noStroke();
-    const resolution = 40;
-    const size = Math.max(p5.width, p5.height) / resolution;
-    Square.size = size;
-    for (let i = 0; i < resolution; ++i) {
-      for (let j = 0; j < resolution; ++j) {
+
+    Square.size = Math.max(p5.width, p5.height) / RESOLUTION;
+    for (let i = 0; i < RESOLUTION; ++i) {
+      for (let j = 0; j < RESOLUTION; ++j) {
         squares.push(new Square(i * Square.size, j * Square.size));
       }
     }
@@ -171,23 +182,24 @@ const sketch = (p5: P5) => {
 
     // 円の描画ここから
     p5.push();
-    p5.translate(0.5 * p5.width, 0.5 * p5.height);
+    p5.translate(Particle.OX, Particle.OY);
     p5.stroke(255);
     p5.strokeWeight(1);
-    particles.forEach((particle: Particle) => {
-      p5.fill(colors[particle.id % colors.length]);
+    particles.forEach((particle: Particle, i: number) => {
+      p5.fill(colors[i % colors.length]);
       particle.draw(p5);
-      particle.collapse();
+      particle.collapse(i);
       if (ongoing) {
         particle.evolution();
       }
     });
     squares.forEach((square: Square) => {
-      square.update(p5);
+      square.update();
     });
     p5.pop();
-
     // 円の描画ここまで
+
+    // 円の追加
     if (!particles[particles.length - 1].ongoing) {
       particles.push(new Particle());
     }
