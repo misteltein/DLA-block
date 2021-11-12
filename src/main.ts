@@ -3,9 +3,12 @@ import P5 from "p5";
 import Particle from "./Particle";
 import Square from "./Square";
 
-const particles: Array<Particle> = [];
+// setup / draw で繰り返し使用する配列
 const colors: Array<P5.Color> = [];
+const particles: Array<Particle> = [];
 const squares: Array<Square> = [];
+
+// 画面いっぱいに図形が充填されるまで継続するためのフラグ
 let ongoing = true;
 
 const sketch = (p5: P5) => {
@@ -17,24 +20,28 @@ const sketch = (p5: P5) => {
     colors.push(p5.color(131, 153, 97));
     colors.push(p5.color(181, 98, 69));
   };
+
   p5.setup = () => {
-    const RESOLUTION = 40;
     p5.createCanvas(1000, 600);
+    // Particle の座標系の原点をカンバスの中心に
     Particle.OX = p5.width * 0.5;
     Particle.OY = p5.height * 0.5;
+    // Particle を生成するリングの半径
     Particle.R =
       Math.sqrt(Math.pow(p5.width * 0.5, 2) + Math.pow(p5.height * 0.5, 2)) +
       65;
+    // カンバス中心に，止まった particle を生成
     const origin: Particle = new Particle();
     origin.dX = 0.0;
     origin.dY = 0.0;
     origin.r = 10.0;
     origin.ongoing = false;
     particles.push(origin);
+    // １つめの動く particle を生成
     particles.push(new Particle());
 
-    p5.noStroke();
-
+    // 正方形を敷き詰めるように生成
+    const RESOLUTION = 40;
     Square.size = Math.max(p5.width, p5.height) / RESOLUTION;
     for (let i = 0; i < RESOLUTION; ++i) {
       for (let j = 0; j < RESOLUTION; ++j) {
@@ -44,7 +51,7 @@ const sketch = (p5: P5) => {
   };
 
   p5.draw = () => {
-    p5.background(0);
+    // 正方形の描画
     p5.noStroke();
     squares.forEach((square: Square, idx) => {
       p5.fill(square.filled ? colors[idx % colors.length] : p5.color(220));
