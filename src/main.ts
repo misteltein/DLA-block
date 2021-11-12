@@ -1,137 +1,12 @@
 // https://editor.p5js.org/misteltein/sketches/pmp6gJ0cV
 import P5 from "p5";
+import Particle from "./Particle";
+import Square from "./Square";
 
-const uniformDistBetween = (begin: number, end: number): number => {
-  return Math.random() * (end - begin) - begin;
-};
-
-const normalDist = (sigma: number): number => {
-  let res = 0.0;
-  for (let i = 0; i < 12; ++i) {
-    res += uniformDistBetween(0.0, 1.0);
-  }
-  return (res - 6.0) * sigma;
-};
-
-// Todo: 中心を (truncMin+truncMax)/2 にするべきでは？
-const normalTrunc = (
-  sigma: number,
-  truncMin: number,
-  truncMax: number
-): number => {
-  const res = Math.abs(normalDist(sigma));
-  if (res < truncMin || truncMax < res) {
-    return normalTrunc(sigma, truncMin, truncMax);
-  }
-  return res;
-};
-
-let ongoing = true;
-
-class Particle {
-  static R: number;
-  static counter = 0;
-  static OX: number;
-  static OY: number;
-
-  dX: number;
-  dY: number;
-  vx: number;
-  vy: number;
-  r: number;
-
-  ongoing: boolean;
-
-  constructor() {
-    const theta = uniformDistBetween(0.0, 2.0 * Math.PI);
-    this.dX = Math.sqrt(2.0) * Particle.R * Math.sin(theta);
-    this.dY = Math.sqrt(2.0) * Particle.R * Math.cos(theta);
-    const norm = Math.sqrt(Math.pow(this.dX, 2) + Math.pow(this.dY, 2));
-    this.vx = -this.dX / norm;
-    this.vy = -this.dY / norm;
-    this.ongoing = true;
-    this.r = normalTrunc(15.0, 5.0, 65.0);
-    this.collapse();
-    if (!this.ongoing) {
-      ongoing = false;
-    }
-  }
-
-  getX() {
-    return this.dX + Particle.OX;
-  }
-
-  getY() {
-    return this.dY + Particle.OY;
-  }
-
-  collapse(idx: number) {
-    particles.forEach((particle: Particle, j: number) => {
-      if (this.ongoing && idx !== j) {
-        if (
-          Math.sqrt(
-            (particle.dX - this.dX) * (particle.dX - this.dX) +
-              (particle.dY - this.dY) * (particle.dY - this.dY)
-          ) <=
-          particle.r + this.r
-        ) {
-          this.ongoing = false;
-        }
-      }
-    });
-  }
-
-  evolution() {
-    if (this.ongoing) {
-      this.dX += this.vx;
-      this.dY += this.vy;
-    }
-  }
-
-  draw(p: P5) {
-    p.circle(this.dX, this.dY, 2.0 * this.r - 1);
-  }
-}
 const particles: Array<Particle> = [];
 const colors: Array<P5.Color> = [];
-
-class Square {
-  static size: number;
-  // 座標ではなく，グリッド番号にしたらいいことある？ x が角の座標だって分かるかな？
-  x: number;
-  y: number;
-  filled: boolean;
-  constructor(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-    this.filled = false;
-  }
-
-  // Todo: particles に依存しないように修正
-  update() {
-    if (!this.filled) {
-      particles.forEach((particle: Particle) => {
-        if (!particle.ongoing) {
-          const xCenter = this.x + 0.5 * Square.size;
-          const yCenter = this.y + 0.5 * Square.size;
-          const xParticle = particle.getX();
-          const yParticle = particle.getY();
-          this.filled =
-            Math.sqrt(
-              Math.pow(xCenter - xParticle, 2) +
-                Math.pow(yCenter - yParticle, 2)
-            ) <= particle.r;
-        }
-      });
-    }
-  }
-
-  draw(p5: P5) {
-    p5.rect(this.x, this.y, Square.size, Square.size);
-  }
-}
-
 const squares: Array<Square> = [];
+let ongoing = true;
 
 const sketch = (p5: P5) => {
   p5.preload = () => {
@@ -172,11 +47,7 @@ const sketch = (p5: P5) => {
     p5.background(0);
     p5.noStroke();
     squares.forEach((square: Square, idx) => {
-      if (square.filled) {
-        p5.fill(colors[idx % colors.length]);
-      } else {
-        p5.fill(220);
-      }
+      p5.fill(square.filled ? colors[idx % colors.length] : p5.color(220));
       square.draw(p5);
     });
 
@@ -188,20 +59,26 @@ const sketch = (p5: P5) => {
     particles.forEach((particle: Particle, i: number) => {
       p5.fill(colors[i % colors.length]);
       particle.draw(p5);
-      particle.collapse(i);
+      particle.collapse(i, particles);
       if (ongoing) {
         particle.evolution();
       }
     });
     squares.forEach((square: Square) => {
-      square.update();
+      particles.forEach((particle: Particle) => {
+        square.update(particle);
+      });
     });
     p5.pop();
     // 円の描画ここまで
 
     // 円の追加
     if (!particles[particles.length - 1].ongoing) {
-      particles.push(new Particle());
+      try {
+        particles.push(new Particle());
+      } catch (error) {
+        ongoing = false;
+      }
     }
   };
 };
