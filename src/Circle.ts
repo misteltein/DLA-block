@@ -1,17 +1,17 @@
 import P5 from "p5";
 
 /**
- * [begin : end] の一様乱数
- * @param {number} begin
- * @param {number} end
+ * 一様乱数
+ * @param {number} truncMin - 区間始め
+ * @param {number} truncMin - 区間終わり
  */
-const uniformDistBetween = (begin: number, end: number): number => {
-    return Math.random() * (end - begin) - begin;
+const uniformDistBetween = (truncMin: number, truncMax: number): number => {
+    return Math.random() * (truncMax - truncMin) + truncMin;
 };
 
 /**
- * 平均 0，分散 sigma の正規乱数
- * @param sigma
+ * 正規乱数
+ * @param {number} sigma - 分散
  */
 const normalDist = (sigma: number): number => {
     let res = 0.0;
@@ -21,7 +21,13 @@ const normalDist = (sigma: number): number => {
     return (res - 6.0) * sigma;
 };
 
-// Todo: 中心を (truncMin+truncMax)/2 にするべきでは？
+/**
+ * 切断正規分布
+ * @param sigma - 分散
+ * @param mu - 平均
+ * @param truncMin - 区間始め
+ * @param truncMax - 区間終わり
+ */
 const normalTrunc = (
     sigma: number,
     mu: number,
@@ -39,8 +45,9 @@ const normalTrunc = (
  * 円を書くためのクラス
  */
 export default class Circle {
+    // 生成するリングの半径
     static R: number;
-    static counter = 0;
+    
     // デフォルトの座標系での円を表すための座標系の原点
     static OX: number;
     static OY: number;
@@ -61,8 +68,8 @@ export default class Circle {
      */
     constructor() {
         const theta = uniformDistBetween(0.0, 2.0 * Math.PI);
-        this.x = Math.sqrt(2.0) * Circle.R * Math.sin(theta);
-        this.y = Math.sqrt(2.0) * Circle.R * Math.cos(theta);
+        this.x = Circle.R * Math.sin(theta);
+        this.y = Circle.R * Math.cos(theta);
         const norm = Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
         this.vx = -this.x / norm;
         this.vy = -this.y / norm;
