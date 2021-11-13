@@ -30,3 +30,7 @@ npm run dev
 
 を実行する。こうすると，`Server running at http://localhost:1234` のようにメッセージが出力される。
 `http://localhost:1234` にアクセスすると作品を見ることができる。
+
+## 動かしたときの見た目
+
+https://misteltein.github.io/DLA-block/
