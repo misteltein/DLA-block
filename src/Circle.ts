@@ -1,4 +1,6 @@
+import MersenneTwister = require('mersenne-twister');
 import P5 from "p5";
+const mt = new MersenneTwister(Math.floor(Math.random()*297562793562));
 
 /**
  * 一様乱数
@@ -6,10 +8,10 @@ import P5 from "p5";
  * @param {number} truncMin - 区間終わり
  */
 const uniformDistBetween = (truncMin: number, truncMax: number): number => {
-  return Math.random() * (truncMax - truncMin) + truncMin;
+  return mt.random() * (truncMax - truncMin) + truncMin;
 };
 
-/**
+/**https://github.com/notifications
  * 正規乱数
  * @param {number} sigma - 分散
  */
