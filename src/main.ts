@@ -85,12 +85,11 @@ const sketch = (p5: P5) => {
       }
     });
 
-    // if (Math.floor(2.25 * beatStep) % 15 === 0) {
     if (beatStep % 5 === 0) {
       const newFronts: Array<number> = [];
       links.forEach((link) => {
-        if (fronts.includes(Math.min(link.termA, link.termB))) {
-          newFronts.push(Math.max(link.termA, link.termB));
+        if (fronts.includes(link.termA)) {
+          newFronts.push(link.termB);
         }
       });
       fronts = newFronts;
@@ -101,7 +100,7 @@ const sketch = (p5: P5) => {
     }
 
     links.forEach((link: Link) => {
-      if (fronts.includes(Math.min(link.termA, link.termB))) {
+      if (fronts.includes(link.termA)) {
         link.highlight = true;
       } else {
         link.highlight = false;

@@ -11,7 +11,7 @@ const uniformDistBetween = (truncMin: number, truncMax: number): number => {
   return mt.random() * (truncMax - truncMin) + truncMin;
 };
 
-/**https://github.com/notifications
+/**
  * 正規乱数
  * @param {number} sigma - 分散
  */
@@ -158,14 +158,6 @@ export default class Circle {
    * @param {P5} p5
    */
   draw(p5: P5) {
-    // p5.fill(255)
-    // p5.strokeWeight(2);
-    // p5.circle(this.x, this.y, 2.0 * this.r );
-    // p5.noStroke()
-    // for(let s=2.0 * this.r - 1;s>0;s-=1.0){
-    //     p5.fill(255-255*(s/(2.0 * this.r - 1)))
-    //     p5.circle(this.x, this.y, s);
-    // }
     p5.noStroke();
     if (this.ongoing) {
       p5.fill(255);
