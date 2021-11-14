@@ -1,12 +1,22 @@
 // https://editor.p5js.org/misteltein/sketches/pmp6gJ0cV
 import P5 from "p5";
 import Circle from "./Circle";
-import Square from "./Square";
+class Link {
+  termA: number;
+  termB: number;
+  highlight: boolean;
+  constructor(termA: number, termB: number, highlight = false) {
+    this.termA = Math.min(termA, termB);
+    this.termB = Math.max(termA, termB);
+    this.highlight = highlight;
+  }
+}
 
 // setup / draw で繰り返し使用する配列
 const colors: Array<P5.Color> = [];
 const circles: Array<Circle> = [];
-const squares: Array<Square> = [];
+let fronts: Array<number> = [];
+const links: Array<Link> = [];
 
 // 画面いっぱいに図形が充填されるまで継続するためのフラグ
 let ongoing = true;
@@ -23,6 +33,7 @@ const sketch = (p5: P5) => {
 
   p5.setup = () => {
     p5.createCanvas(1000, 600);
+    p5.frameRate(30);
     // Circle の座標系の原点をカンバスの中心に
     Circle.OX = p5.width * 0.5;
     Circle.OY = p5.height * 0.5;
@@ -39,24 +50,13 @@ const sketch = (p5: P5) => {
     circles.push(origin);
     // １つめの動く円を生成
     circles.push(new Circle());
-
-    // 正方形を敷き詰めるように生成
-    const RESOLUTION = 40;
-    Square.SIZE = Math.max(p5.width, p5.height) / RESOLUTION;
-    for (let i = 0; i < RESOLUTION; ++i) {
-      for (let j = 0; j < RESOLUTION; ++j) {
-        squares.push(new Square(i * Square.SIZE, j * Square.SIZE));
-      }
-    }
   };
 
+  let step = 0;
+  let beatStep = 0;
   p5.draw = () => {
-    // 正方形の描画（デフォルトの座標系）
-    p5.noStroke();
-    squares.forEach((square: Square, idx) => {
-      p5.fill(square.filled ? colors[idx % colors.length] : p5.color(220));
-      square.draw(p5);
-    });
+    step++;
+    p5.background(0);
 
     // 円の描画（カンバスを中心とする座標系）ここから
     p5.push();
@@ -66,29 +66,75 @@ const sketch = (p5: P5) => {
     circles.forEach((circle: Circle, i: number) => {
       p5.fill(colors[i % colors.length]);
       circle.draw(p5);
-      circle.updateState(i, circles);
-      if (ongoing) {
+      const neighbors = circle.computeNeighbors(circles);
+      neighbors.forEach((j) => {
+        const hit: Link | undefined = links.find((link: Link) => {
+          return (
+            link.termA === Math.min(circle.index, j) &&
+            link.termB === Math.max(circle.index, j)
+          );
+        });
+        if (!hit) {
+          links.push(new Link(circle.index, j));
+        }
+      });
+      if (neighbors.length === 0) {
         circle.evolution();
+      } else {
+        circle.ongoing = false;
       }
+    });
+
+    // if (Math.floor(2.25 * beatStep) % 15 === 0) {
+    if (beatStep % Math.floor(2.25 * 5) === 0) {
+      const newFronts: Array<number> = [];
+      links.forEach((link) => {
+        if (fronts.includes(Math.min(link.termA, link.termB))) {
+          newFronts.push(Math.max(link.termA, link.termB));
+        }
+      });
+      fronts = newFronts;
+    }
+
+    // if (Math.floor(2.25 * beatStep) % 300 === 0) {
+    //   fronts.push(0);
+    // }
+    if (beatStep % Math.floor(2.25 * 30) === 0) {
+      fronts.push(0);
+    }
+
+    links.forEach((link: Link) => {
+      if (fronts.includes(Math.min(link.termA, link.termB))) {
+        link.highlight = true;
+      } else {
+        link.highlight = false;
+      }
+      p5.push();
+      p5.stroke(255);
+      p5.strokeWeight(link.highlight ? 6 : 4);
+      p5.line(
+        circles[link.termA].x,
+        circles[link.termA].y,
+        circles[link.termB].x,
+        circles[link.termB].y
+      );
+      p5.pop();
     });
     p5.pop();
     // 円の描画ここまで
 
-    // 正方形の色を更新
-    squares.forEach((square: Square) => {
-      circles.forEach((circle: Circle) => {
-        square.updateState(circle);
-      });
-    });
-
-    // 最後に追加した円が静止したら新しく円を追加
-    if (!circles[circles.length - 1].ongoing) {
+    // 新しく円を追加
+    if (ongoing && step % 60 === 0) {
       try {
         // 追加してすぐに接触していたら例外が発生するので描画を停止させる
         circles.push(new Circle());
       } catch (error) {
         ongoing = false;
       }
+    }
+
+    if (links.length !== 0) {
+      beatStep++;
     }
   };
 };
