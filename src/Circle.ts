@@ -1,6 +1,6 @@
-import MersenneTwister = require('mersenne-twister');
+import MersenneTwister = require("mersenne-twister");
 import P5 from "p5";
-const mt = new MersenneTwister(Math.floor(Math.random()*297562793562));
+const mt = new MersenneTwister(Math.floor(Math.random() * 297562793562));
 
 /**
  * 一様乱数
@@ -88,9 +88,6 @@ export default class Circle {
     this.ongoing = true;
     this.r = normalTrunc(5.0, 15.0, 5.0, 30.0);
     this.updateState(0, []);
-    if (!this.ongoing) {
-      throw new Error("end");
-    }
   }
 
   /**

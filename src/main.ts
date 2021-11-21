@@ -1,10 +1,12 @@
 // https://editor.p5js.org/misteltein/sketches/pmp6gJ0cV
 import P5 from "p5";
 import Circle from "./Circle";
+
 class Link {
   termA: number;
   termB: number;
   highlight: boolean;
+
   constructor(termA: number, termB: number, highlight = false) {
     this.termA = Math.min(termA, termB);
     this.termB = Math.max(termA, termB);
@@ -19,7 +21,8 @@ let fronts: Array<number> = [];
 const links: Array<Link> = [];
 
 // 画面いっぱいに図形が充填されるまで継続するためのフラグ
-let ongoing = true;
+let growth = true;
+let radiusKillLine: number;
 
 const sketch = (p5: P5) => {
   p5.preload = () => {
@@ -50,6 +53,8 @@ const sketch = (p5: P5) => {
     circles.push(origin);
     // １つめの動く円を生成
     circles.push(new Circle());
+    growth = true;
+    radiusKillLine = Math.min(p5.width, p5.height) * 0.5;
   };
 
   let step = 0;
@@ -119,14 +124,30 @@ const sketch = (p5: P5) => {
     p5.pop();
     // 円の描画ここまで
 
-    // 新しく円を追加
-    if (ongoing && step % 60 === 0) {
-      try {
-        // 追加してすぐに接触していたら例外が発生するので描画を停止させる
-        circles.push(new Circle());
-      } catch (error) {
-        ongoing = false;
+    let intersectX0 = false;
+    let intersectY0 = false;
+    let intersectXW = false;
+    let intersectYH = false;
+    circles.forEach((circle) => {
+      if (!circle.ongoing) {
+        intersectX0 = intersectX0 || Math.abs(circle.getX()) < circle.r;
+        intersectY0 = intersectY0 || Math.abs(circle.getY()) < circle.r;
+        intersectXW =
+          intersectXW || Math.abs(circle.getX() - p5.width) < circle.r;
+        intersectYH =
+          intersectYH || Math.abs(circle.getY() - p5.height) < circle.r;
       }
+    });
+
+    if(intersectX0 && intersectY0 && intersectXW && intersectYH){
+      growth=false;
+    }
+    console.log(growth)
+
+    // 新しく円を追加
+    // if (growth && step % 60 === 0) {
+    if (growth && step % 30 === 0) {
+      circles.push(new Circle());
     }
 
     if (links.length !== 0) {
